@@ -56,6 +56,7 @@ Ext.define('CustomApp', {
         var returned = [
             {
                 name: 'iterationField',
+                fieldLabel: 'Field: ',
                 xtype: 'rallyfieldcombobox',
                 model: 'Iteration',
                 _isNotHidden: function(field) {
@@ -69,6 +70,7 @@ Ext.define('CustomApp', {
             },
             {
                 name: 'pointSize',
+                fieldLabel: 'Font px: ',
                 xtype: 'rallytextfield',
                 validateOnChange: true,
                 isValid: function() {
