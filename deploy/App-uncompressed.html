@@ -34,6 +34,7 @@ Ext.define('CustomApp', {
                     xtype: 'rallyiterationcombobox',
                     itemId: 'selector',
                     stateful: true,
+                    stateId: 'selector' + Ext.id(),
                     storeConfig: {
                         fetch: ["Name", "StartDate", "EndDate", "ObjectID", "State", "PlannedVelocity",]
                     },
@@ -65,7 +66,15 @@ Ext.define('CustomApp', {
             {
                 name: 'iterationField',
                 xtype: 'rallyfieldcombobox',
-                model: 'Iteration'
+                model: 'Iteration',
+                _isNotHidden: function(field) {
+                    var blacklist = [
+                        'ObjectUUID', 'ObjectID', 'Subscription', 'Workspace', 
+                        'UserIterationCapacities', 'RevisionHistory', 'Project',
+                        'VersionId'
+                    ];
+                    return !field.hidden && !_.contains(blacklist, field.name);
+                },
             },
             {
                 name: 'pointSize',
@@ -108,9 +117,10 @@ Ext.define('CustomApp', {
                     if (success) {
                         var hb = gApp.down('#textBox');
                         var fieldName = gApp.getSetting('iterationField');
-                        var fieldData = data[0].get(fieldName);
+                        var fieldData = data[0].get(fieldName) ? data[0].get(fieldName).toString() : 'Field Info Not Available';
+                        
                         var pointSize = gApp.getSetting('pointSize');
-                        if (hb.down('#labelBox')) {hb.down('#labelBox').destroy();}
+                        if (hb && hb.down('#labelBox')) {hb.down('#labelBox').destroy();}
                         var label = hb.add( {
                             xtype: 'label',
                             itemId: 'labelBox',
