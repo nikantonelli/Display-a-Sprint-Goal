@@ -1,11 +1,14 @@
+(function () {
+    var Ext = window.Ext4 || window.Ext;
+
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     itemId: 'rallyApp',
-
+    stateful: true,
     config: {
         defaultSettings: {
             iterationField: 'Theme',
-            pointSize: 18
+            pointSize: 28
         }
     },
     
@@ -21,17 +24,20 @@ Ext.define('CustomApp', {
                 {
                     xtype: 'rallyiterationcombobox',
                     itemId: 'selector',
+                    stateful: true,
                     storeConfig: {
                         fetch: ["Name", "StartDate", "EndDate", "ObjectID", "State", "PlannedVelocity",]
                     },
                     listeners: {
                         select: 
-                            function(selection) {
-                                gApp = this.up('#rallyApp'); gApp._checkState();
+                            function() {
+                                gApp = this.up('#rallyApp'); 
+                                gApp._checkState();
                             },
                         ready:
-                            function(selection) {
-                                gApp = this.up('#rallyApp'); gApp._checkState();
+                            function() {
+                                gApp = this.up('#rallyApp'); 
+                                gApp._checkState();
                             }
                     }
                 }
@@ -61,7 +67,6 @@ Ext.define('CustomApp', {
                         return true;
                     }
                     else {
-                        debugger;
                         return false;
                     }
                 }
@@ -78,7 +83,7 @@ Ext.define('CustomApp', {
         
         //Get iteration into a store with all the fields
         var oid = Rally.util.Ref.getOidFromRef(gApp.down('#selector').getValue());
-        var iterationStore = Ext.create('Rally.data.wsapi.Store', {
+        Ext.create('Rally.data.wsapi.Store', {
             model: 'Iteration',
             autoLoad: true,
             fetch: true,
@@ -91,17 +96,19 @@ Ext.define('CustomApp', {
             ],
             listeners: {
                 load: function(store,data,success) {
-                    var hb = gApp.down('#textBox');
-                    var fieldName = gApp.getSetting('iterationField');
-                    var fieldData = data[0].get(fieldName);
-                    var pointSize = gApp.getSetting('pointSize');
-                    if (hb.down('#labelBox')) hb.down('#labelBox').destroy();
-                    var label = hb.add( {
-                        xtype: 'label',
-                        itemId: 'labelBox',
-                        html: fieldData
-                    });
-                    label.getEl().setStyle( 'font-size', pointSize + "px");
+                    if (success) {
+                        var hb = gApp.down('#textBox');
+                        var fieldName = gApp.getSetting('iterationField');
+                        var fieldData = data[0].get(fieldName);
+                        var pointSize = gApp.getSetting('pointSize');
+                        if (hb.down('#labelBox')) {hb.down('#labelBox').destroy();}
+                        var label = hb.add( {
+                            xtype: 'label',
+                            itemId: 'labelBox',
+                            html: fieldData
+                        });
+                        label.getEl().setStyle( 'font-size', pointSize + "px");
+                    }
                 }
             }
         },this);
@@ -111,3 +118,4 @@ Ext.define('CustomApp', {
     launch: function() {
     }
 });
+}());
