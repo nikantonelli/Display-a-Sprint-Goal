@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SprintGoal</title>
+
+    <script type="text/javascript" src="https://rally1.rallydev.com/apps/2.1/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function () {
+                Ext.define("CustomApp",{extend:"Rally.app.App",itemId:"rallyApp",config:{defaultSettings:{iterationField:"Theme",pointSize:18}},componentCls:"app",items:[{xtype:"container",itemId:"headerBox",layout:{type:"hbox"},items:[{xtype:"rallyiterationcombobox",itemId:"selector",storeConfig:{fetch:["Name","StartDate","EndDate","ObjectID","State","PlannedVelocity"]},listeners:{select:function(selection){gApp=this.up("#rallyApp"),gApp._checkState()},ready:function(selection){gApp=this.up("#rallyApp"),gApp._checkState()}}}]},{xtype:"container",itemId:"textBox"}],textHTML:null,getSettingsFields:function(){var returned=[{name:"iterationField",xtype:"rallyfieldcombobox",model:"Iteration"},{name:"pointSize",xtype:"rallytextfield",validateOnChange:!0,isValid:function(){return!(!this.getValue()||!parseInt(this.getValue()))}}];return returned},onSettingsUpdate:function(){gApp._checkState()},_checkState:function(){var oid=Rally.util.Ref.getOidFromRef(gApp.down("#selector").getValue()),iterationStore=Ext.create("Rally.data.wsapi.Store",{model:"Iteration",autoLoad:!0,fetch:!0,filters:[{property:"ObjectID",operator:"=",value:oid}],listeners:{load:function(store,data,success){var hb=gApp.down("#textBox"),fieldName=gApp.getSetting("iterationField"),fieldData=data[0].get(fieldName),pointSize=gApp.getSetting("pointSize");hb.down("#labelBox")&&hb.down("#labelBox").destroy();var label=hb.add({xtype:"label",itemId:"labelBox",html:fieldData});label.getEl().setStyle("font-size",pointSize+"px")}}},this)},launch:function(){}});
+
+            Rally.launchApp('CustomApp', {
+                name:"SprintGoal",
+	            parentRepos:""
+            });
+
+        });
+    </script>
+
+
+    <style type="text/css">
+        
+    </style>
+</head>
+<body>
+</body>
+</html>
