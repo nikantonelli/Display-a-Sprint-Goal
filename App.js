@@ -7,7 +7,8 @@ Ext.define('CustomApp', {
     stateful: true,
     config: {
         defaultSettings: {
-            iterationField: 'Theme',
+            recordType: 'Iteration',
+            field: 'Theme',
             pointSize: 28
         }
     },
@@ -19,30 +20,7 @@ Ext.define('CustomApp', {
             itemId: 'headerBox',
             layout: {
                 type: 'hbox'
-            },
-            items: [
-                {
-                    xtype: 'rallyiterationcombobox',
-                    itemId: 'selector',
-                    stateful: true,
-                    stateId: 'selector' + Ext.id(),
-                    storeConfig: {
-                        fetch: ["Name", "StartDate", "EndDate", "ObjectID", "State", "PlannedVelocity",]
-                    },
-                    listeners: {
-                        select: 
-                            function() {
-                                gApp = this.up('#rallyApp'); 
-                                gApp._checkState();
-                            },
-                        ready:
-                            function() {
-                                gApp = this.up('#rallyApp'); 
-                                gApp._checkState();
-                            }
-                    }
-                }
-            ]
+            }
         },
         {
             xtype: 'container',
@@ -52,13 +30,117 @@ Ext.define('CustomApp', {
 
     textHTML: null,
 
+    _enterMainApp: function() {
+        var me = this;
+
+        if (this.down('#itemSelector')){
+            this.down('#itemSelector').destroy();
+        }
+        var typeSelected = me.typeSelector;
+        if (!typeSelected) {
+            //Initialy, there will be no set up info, so ask user to initialise
+            this.add(
+                {
+                    xtype: 'label', 
+                    text:'Please set and save app settings for first use', 
+                    margin: 50,
+                    itemId: 'settingsLabel'
+                }
+            );
+            return;
+        }
+        this.down('#headerBox').add(     //Done this way so that I can use the debugger to catch the object
+        {
+            xtype: typeSelected.comboBox,
+            margin: '5 0 5 20',
+            itemId: 'itemSelector',
+            fieldLabel: 'Select Item: ',
+            stateful: true,
+            stateId: 'itemSelector' + Ext.id(),
+            storeConfig: {
+                autoLoad: true,
+                model: typeSelected.value,
+                fetch: typeSelected.fetchList,
+            },
+            listeners: {
+                select: 
+                    function() {
+                        me._checkState(this.store.config.model, me);
+                    },
+                ready:
+                    function() {
+                        me._checkState(this.store.config.model, me);
+                    }
+            }
+        });
+    },
+
+    typeSelector: null,
+
     getSettingsFields: function() {
+        var me = this;
         var returned = [
             {
-                name: 'iterationField',
+                xtype: 'rallycombobox',
+                margin: '5 0 5 20',
+                bubbleEvents: ['resetField'],
+                name: 'recordType',
+                fieldLabel: 'Artefact Type:',
+                labelWidth:150,
+                displayField: 'name',
+                valueField: 'value',
+                editable: false,
+                storeType: 'Ext.data.Store',
+                storeConfig: {
+                    remoteFilter: false,
+                    fields: ['name', 'value', 'comboBox', 'fetchList'],
+                    data: [
+                        { 
+                            'name': 'Iteration', 
+                            'value': 'Iteration', 
+                            'comboBox' : 'rallyiterationcombobox',
+                            'fetchList' : [
+                                "Name", "StartDate", "EndDate", "ObjectID", "State", "PlannedVelocity"                                    
+                            ] 
+                        },
+                        {   
+                            'name': 'Release', 
+                            'value': 'Release', 
+                            'comboBox' : 'rallyreleasecombobox',
+                            'fetchList' : [
+                                "Name", "ObjectID", "State", "ReleaseDate", "ReleaseStartDate"
+                            ]
+                        },
+                        { 
+                            'name': 'Milestone', 
+                            'value': 'Milestone', 
+                            'comboBox' : 'rallymilestonecombobox',
+                            'fetchList' : [
+                                "Name", "ObjectID", "TargetDate"
+                            ]  
+                        }
+                    ],
+                },
+                listeners: {
+                    select: function(combo, records) {
+                        me.typeSelector = records[0].data;
+                        combo.fireEvent('resetField', records[0].get('value'), combo.context);
+
+                    },
+                    ready: function(combo) {
+                        me.typeSelector = this.getRecord().data;
+                        this.fireEvent('resetField', combo.value, combo.context);
+                    }
+
+                }
+            },
+            {
+                name: 'field',
                 fieldLabel: 'Field: ',
                 xtype: 'rallyfieldcombobox',
-                model: 'Iteration',
+                labelWidth: 150,
+//                model: me.settings.recordType,
+                margin: '5 0 5 20',
                 _isNotHidden: function(field) {
                     var blacklist = [
                         'ObjectUUID', 'ObjectID', 'Subscription', 'Workspace', 
@@ -67,11 +149,18 @@ Ext.define('CustomApp', {
                     ];
                     return !field.hidden && !_.contains(blacklist, field.name);
                 },
+                handlesEvents: {
+                    resetField: function (type, context) {
+                     this.refreshWithNewModelType(type, context);
+                    }
+                }
             },
             {
                 name: 'pointSize',
                 fieldLabel: 'Font px: ',
                 xtype: 'rallytextfield',
+                labelWidth: 150,
+                margin: '5 0 5 20',
                 validateOnChange: true,
                 isValid: function() {
                     if (this.getValue() && parseInt(this.getValue())) {
@@ -87,15 +176,17 @@ Ext.define('CustomApp', {
     },
 
     onSettingsUpdate: function() {
-        gApp._checkState();
+        if ( this.down('#settingsLabel')) { this.down('#settingsLabel').destroy(); }
+        this._enterMainApp();
     },
 
-    _checkState: function() {
-        
+    _checkState: function(model, me) {
+        if (!me.down('#itemSelector')) { return; }  //If we haven't set up app, then don't barf out here.
+
         //Get iteration into a store with all the fields
-        var oid = Rally.util.Ref.getOidFromRef(gApp.down('#selector').getValue());
+        var oid = Rally.util.Ref.getOidFromRef(me.down('#itemSelector').getValue());
         Ext.create('Rally.data.wsapi.Store', {
-            model: 'Iteration',
+            model: model,
             autoLoad: true,
             fetch: true,
             filters: [
@@ -108,11 +199,11 @@ Ext.define('CustomApp', {
             listeners: {
                 load: function(store,data,success) {
                     if (success) {
-                        var hb = gApp.down('#textBox');
-                        var fieldName = gApp.getSetting('iterationField');
+                        var hb = me.down('#textBox');
+                        var fieldName = me.getSetting('field');
                         var fieldData = data[0].get(fieldName) ? data[0].get(fieldName).toString() : 'Field Info Not Available';
                         
-                        var pointSize = gApp.getSetting('pointSize');
+                        var pointSize = me.getSetting('pointSize');
                         if (hb && hb.down('#labelBox')) {hb.down('#labelBox').destroy();}
                         var label = hb.add( {
                             xtype: 'label',
@@ -128,6 +219,7 @@ Ext.define('CustomApp', {
     },
 
     launch: function() {
+        this._enterMainApp();
     }
 });
 }());
