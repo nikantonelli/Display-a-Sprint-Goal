@@ -9,6 +9,7 @@
         Rally.onReady(function () {
                 (function () {
     var Ext = window.Ext4 || window.Ext;
+    var gApp = null;
 
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
@@ -41,11 +42,11 @@ Ext.define('CustomApp', {
 
     _enterMainApp: function() {
         var me = this;
-
         if (this.down('#itemSelector')){
             this.down('#itemSelector').destroy();
         }
-        var typeSelected = me.typeSelector;
+        var typeSelected = gApp.getSetting('recordType');
+        var fieldSelected = gApp.getSetting('field');
         if (!typeSelected) {
             //Initialy, there will be no set up info, so ask user to initialise
             this.add(
@@ -60,16 +61,17 @@ Ext.define('CustomApp', {
         }
         this.down('#headerBox').add(     //Done this way so that I can use the debugger to catch the object
         {
-            xtype: typeSelected.comboBox,
+            xtype: 'rally' + typeSelected.toLowerCase() + 'combobox',
             margin: '5 0 5 20',
             itemId: 'itemSelector',
             fieldLabel: 'Select Item: ',
-            stateful: true,
-            stateId: 'itemSelector' + Ext.id(),
+            // stateful: true,
+            // stateId: 'itemSelector' + Ext.id(),
             storeConfig: {
                 autoLoad: true,
-                model: typeSelected.value,
-                fetch: typeSelected.fetchList,
+                model: typeSelected,
+                fetch: ['Name', 'ObjectID', "StartDate", "EndDate", "ReleaseDate", "ReleaseStartDate", "State", "PlannedVelocity", "TargetDate", fieldSelected]
+                //typeSelected.fetchList,
             },
             listeners: {
                 select: 
@@ -87,10 +89,10 @@ Ext.define('CustomApp', {
     typeSelector: null,
 
     getSettingsFields: function() {
-        var me = this;
         var returned = [
             {
                 xtype: 'rallycombobox',
+                id: 'typecombo',
                 margin: '5 0 5 20',
                 bubbleEvents: ['resetField'],
                 name: 'recordType',
@@ -131,24 +133,23 @@ Ext.define('CustomApp', {
                     ],
                 },
                 listeners: {
-                    select: function(combo, records) {
-                        me.typeSelector = records[0].data;
-                        combo.fireEvent('resetField', records[0].get('value'), combo.context);
-
+                    select: function() {
+                        this.up('form').down('#fieldcombo').fireEvent('resetField', this.value);
                     },
-                    ready: function(combo) {
-                        me.typeSelector = this.getRecord().data;
-                        this.fireEvent('resetField', combo.value, combo.context);
-                    }
-
+                    sendType: function() {
+                        this.up('form').down('#fieldcombo').fireEvent('resetField', this.value);
+                    },
                 }
             },
             {
                 name: 'field',
                 fieldLabel: 'Field: ',
                 xtype: 'rallyfieldcombobox',
+                id: 'fieldcombo',
                 labelWidth: 150,
-//                model: me.settings.recordType,
+                stateful: true,
+                bubbleEvents: ['sendType'],
+                stateId: 'fieldlabel' + Ext.id(),
                 margin: '5 0 5 20',
                 _isNotHidden: function(field) {
                     var blacklist = [
@@ -158,9 +159,13 @@ Ext.define('CustomApp', {
                     ];
                     return !field.hidden && !_.contains(blacklist, field.name);
                 },
-                handlesEvents: {
-                    resetField: function (type, context) {
-                     this.refreshWithNewModelType(type, context);
+                listeners: {
+                    afterrender: function(  ) {
+                        this.up('form').down('#typecombo').fireEvent('sendType', this.value);
+
+                    },
+                    resetField: function (type) {
+                        this.refreshWithNewModelType(type);
                     }
                 }
             },
@@ -228,6 +233,7 @@ Ext.define('CustomApp', {
     },
 
     launch: function() {
+        gApp = this;
         this._enterMainApp();
     }
 });
@@ -235,7 +241,8 @@ Ext.define('CustomApp', {
 
             Rally.launchApp('CustomApp', {
                 name:"SprintGoal",
-	            parentRepos:""
+                parentRepos:"",
+                version:"0.1.1"
             });
 
         });
