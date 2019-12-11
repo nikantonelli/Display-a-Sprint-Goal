@@ -3,7 +3,7 @@ SprintGoal
 
 ## Overview
 
-Takes a field from the Iteration artefact and shows it in a user selectable font size. This is useful if you want to have the Sprint Goal obvious on a page, e.g. you might have the status to the left and the goal statement to the right.
+Takes a field from the Iteration, Release or Milestone artefact and shows it in a user selectable font size. This is useful if you want to have the Sprint Goal obvious on a page, e.g. you might have the status to the left and the goal statement to the right.
 
 Or alternatively, you can have a page with multiple versions of this app on each showing different important fields at the same time in big text!
 
